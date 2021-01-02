@@ -1,8 +1,4 @@
-const express = require('express');
-
 const HttpError = require('../models/http-error');
-
-const router = express.Router();
 
 const DUMMY_PLACES = [
   {
@@ -33,18 +29,7 @@ const DUMMY_PLACES = [
   }
 ];
 
-router.get('/user/:userId', (req, res, next) => {
-  const userId = req.params.userId;
-  const places = DUMMY_PLACES.filter((places) => places.creatorId === userId);
-
-  if (places.length === 0) {
-    return next(new HttpError('Could not find places for that user ID.', 404));
-  }
-
-  res.json({ places });
-});
-
-router.get('/:placeId', (req, res, next) => {
+const getPlaceById = (req, res, next) => {
   const placeId = req.params.placeId;
   const place = DUMMY_PLACES.find((place) => place.id === placeId);
 
@@ -53,11 +38,18 @@ router.get('/:placeId', (req, res, next) => {
   }
 
   res.json({ place });
-});
+};
 
-// router.post('', (req, res, next) => {
-//   console.log('/api/places/user/userId');
-//   res.json({ message: 'api/places/user/userId' });
-// });
+const getPlacesByUserId = (req, res, next) => {
+  const userId = req.params.userId;
+  const places = DUMMY_PLACES.filter((places) => places.creatorId === userId);
 
-module.exports = router;
+  if (places.length === 0) {
+    return next(new HttpError('Could not find places for that user ID.', 404));
+  }
+
+  res.json({ places });
+};
+
+exports.getPlaceById = getPlaceById;
+exports.getPlacesByUserId = getPlacesByUserId;
