@@ -1,6 +1,8 @@
 const { v4: uuidv4 } = require('uuid');
+const { validationResult } = require('express-validator');
 
 const HttpError = require('../models/http-error');
+const getCoordinatesFromAddress = require('../util/geocoding');
 
 const PLACES = [
   {
@@ -53,22 +55,27 @@ const getPlacesByUserId = (req, res, next) => {
   res.status(200).json({ places });
 };
 
-const createPlace = (req, res, next) => {
-  const {
-    title,
-    description,
-    imageUrl,
-    coordinates,
-    address,
-    creatorId
-  } = req.body;
+const createPlace = async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  const { title, description, imageUrl, address, creatorId } = req.body;
+
+  let coordinates;
+  try {
+    coordinates = await getCoordinatesFromAddress(address);
+  } catch (error) {
+    return next(error);
+  }
 
   const newPlace = {
     id: uuidv4(),
     title,
     description,
     imageUrl,
-    location: coordinates,
+    coordinates: coordinates,
     address,
     creatorId
   };
@@ -79,6 +86,11 @@ const createPlace = (req, res, next) => {
 };
 
 const updatePlace = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   const { title, description } = req.body;
 
   const index = PLACES.findIndex((place) => place.id === req.params.placeId);

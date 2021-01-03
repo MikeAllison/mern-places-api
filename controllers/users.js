@@ -1,4 +1,5 @@
 const { v4: uuidv4 } = require('uuid');
+const { validationResult } = require('express-validator');
 
 const HttpError = require('../models/http-error');
 
@@ -30,7 +31,16 @@ const getUsers = (req, res, next) => {
 };
 
 const signup = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return next(res.status(400).json({ errors: errors.array() }));
+  }
+
   const { name, email, password } = req.body;
+
+  if (USERS.find((user) => user.email === req.body.email)) {
+    return next(new HttpError('Email address has already been used.', 422));
+  }
 
   const newUser = {
     id: uuidv4(),
@@ -50,7 +60,7 @@ const login = (req, res, next) => {
   const user = USERS.find((user) => user.email === req.body.email);
 
   if (!user || user.password !== req.body.password) {
-    return next(new HttpError('Email or password invalid.', 404));
+    return next(new HttpError('Email or password invalid.', 401));
   }
 
   res.status(200).json({ message: 'Logged in successfully.' });
