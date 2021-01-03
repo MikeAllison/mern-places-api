@@ -1,11 +1,13 @@
 const express = require('express');
 
+const usersController = require('../controllers/users');
+
 const router = express.Router();
 
-router.get('/:userId', (req, res, next) => {
-  const userId = req.params.userId;
-  const place = DUMMY_PLACES.find((place) => place.id === placeId);
-  res.json({ place });
-});
+router.get('/', usersController.getUsers);
+
+router.post('/signup', usersController.signup);
+
+router.post('/login', usersController.login);
 
 module.exports = router;
