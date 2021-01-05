@@ -46,11 +46,12 @@ const createPlace = async (req, res, next) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { title, description, imageUrl, address } = req.body;
+  const { title, description, address, creator } = req.body;
 
+  // Find user object from creator in req.body
   let user;
   try {
-    user = await User.findOne(); // TO-DO - Make work with auth
+    user = await User.findById(creator); // TO-DO - Make work with auth
   } catch (error) {
     return next(new HttpError(error, 500));
   }
@@ -69,10 +70,11 @@ const createPlace = async (req, res, next) => {
   const newPlace = new Place({
     title,
     description,
-    imageUrl,
+    imageUrl:
+      'https://marvel-b1-cdn.bc0a.com/f00000000179470/www.esbnyc.com/sites/default/files/styles/on_single_feature/public/2020-02/Green%20lights.jpg?itok=nRbtw3hG',
     coordinates: coordinates,
     address,
-    creator: user
+    creator
   });
 
   try {
