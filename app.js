@@ -1,3 +1,5 @@
+const fs = require('fs');
+const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
@@ -18,23 +20,32 @@ app.use((req, res, next) => {
     'Origin, X-Requested-With, Content-Type, Accept, Authorization'
   );
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE');
+
   next();
 });
 
 app.use('/api/places', placesRoutes);
 app.use('/api/users', usersRoutes);
+app.use('/uploads/images', express.static(path.join('uploads', 'images')));
 
 app.use((req, res, next) => {
   return next(new HttpError('Could not find this route.', 404));
 });
 
-app.use((error, req, res, next) => {
-  if (res.headerSent) {
-    return next(error);
+app.use((err, req, res, next) => {
+  // Delete the file if signup fails (req.file added by Multer)
+  if (req.file) {
+    fs.unlink(req.file.path, (err) => {
+      console.log(err);
+    });
   }
 
-  res.status(error.code || 500);
-  res.json({ message: error.message || 'An unkown error occurred.' });
+  if (res.headerSent) {
+    return next(err);
+  }
+
+  res.status(err.code || 500);
+  res.json({ message: err.message || 'An unkown error occurred.' });
 });
 
 mongoose
@@ -45,6 +56,6 @@ mongoose
   .then(() => {
     app.listen(5000);
   })
-  .catch((error) => {
-    console.log(error);
+  .catch((err) => {
+    console.log(err);
   });
