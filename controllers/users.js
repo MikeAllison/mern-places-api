@@ -1,8 +1,12 @@
 const { validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const HttpError = require('../models/http-error');
 
 const User = require('../models/user');
+
+const PRIVATE_KEY = 'privatekeygoeshere';
 
 const getUsers = async (req, res, next) => {
   let users;
@@ -36,10 +40,17 @@ const signup = async (req, res, next) => {
     return next(new HttpError('Email address has already been used.', 422));
   }
 
+  let hashedPassword;
+  try {
+    hashedPassword = await bcrypt.hash(password, 12); // Second arg is number of salting rounds
+  } catch {
+    return next(new HttpError('Could not create user, please try again.', 500));
+  }
+
   user = new User({
     name,
     email,
-    password,
+    password: hashedPassword,
     imagePath: req.file.path,
     places: []
   });
@@ -50,7 +61,20 @@ const signup = async (req, res, next) => {
     return next(new HttpError(err, 500));
   }
 
-  res.status(201).json({ user: user.toObject({ getters: true }) });
+  let token;
+  try {
+    token = await jwt.sign(
+      { userId: user.id, email: user.email },
+      PRIVATE_KEY,
+      {
+        expiresIn: '1h'
+      }
+    );
+  } catch (err) {
+    return next(new HttpError(err, 500));
+  }
+
+  res.status(201).json({ userId: user.id, email: user.email, token: token });
 };
 
 const login = async (req, res, next) => {
@@ -63,14 +87,40 @@ const login = async (req, res, next) => {
     return next(new HttpError(err, 422));
   }
 
-  if (!user || user.password !== password) {
-    return next(new HttpError('Email or password invalid.', 401));
+  if (!user) {
+    return next(new HttpError('Email or password invalid.', 403));
   }
 
-  res.status(200).json({
-    message: 'Logged in successfully.',
-    user: user.toObject({ getters: true })
-  });
+  let isValidPassword = false;
+  try {
+    isValidPassword = await bcrypt.compare(password, user.password);
+  } catch (err) {
+    return next(
+      new HttpError(
+        'There was a problem with the request.  Please try again.',
+        500
+      )
+    );
+  }
+
+  if (!isValidPassword) {
+    return next(new HttpError('Email or password invalid.', 403));
+  }
+
+  let token;
+  try {
+    token = await jwt.sign(
+      { userId: user.id, email: user.email },
+      PRIVATE_KEY,
+      {
+        expiresIn: '1h'
+      }
+    );
+  } catch (err) {
+    return next(new HttpError(err, 500));
+  }
+
+  res.status(200).json({ userId: user.id, email: user.email, token: token });
 };
 
 exports.getUsers = getUsers;

@@ -32,7 +32,7 @@ const getPlacesByUserId = async (req, res, next) => {
   }
 
   if (!places || places.length === 0) {
-    return next(new HttpError('Could not find places for that user ID.', 404));
+    return next(new HttpError('Could not find places for that user.', 404));
   }
 
   res
@@ -46,12 +46,11 @@ const createPlace = async (req, res, next) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
-  const { title, description, address, creator } = req.body;
+  const { title, description, address } = req.body;
 
-  // Find user object from creator in req.body
   let user;
   try {
-    user = await User.findById(creator); // TO-DO - Make work with auth
+    user = await User.findById(req.userData.userId); // This comes from middleware/check-auth
   } catch (err) {
     return next(new HttpError(err, 500));
   }
@@ -73,7 +72,7 @@ const createPlace = async (req, res, next) => {
     imagePath: req.file.path,
     coordinates: coordinates,
     address,
-    creator
+    creator: user
   });
 
   try {
@@ -109,6 +108,12 @@ const updatePlace = async (req, res, next) => {
     return next(new HttpError('Could not find a place with that ID.', 404));
   }
 
+  if (place.creator.toString() !== req.userData.userId) {
+    return next(
+      new HttpError('You are not authorized to edit this place.', 401)
+    );
+  }
+
   place.title = title;
   place.description = description;
 
@@ -132,6 +137,12 @@ const deletePlace = async (req, res, next) => {
   if (!place) {
     return next(
       new HttpError(`Could not find place with ID ${req.params.placeId}.`, 404)
+    );
+  }
+
+  if (place.creator.id !== req.userData.userId) {
+    return next(
+      new HttpError('You are not authorized to delete this place.', 401)
     );
   }
 
