@@ -159,7 +159,9 @@ const deletePlace = async (req, res, next) => {
 
   // Delete associated image
   fs.unlink(place.imagePath, (err) => {
-    console.log(err);
+    if (err) {
+      console.log(err);
+    }
   });
 
   res
