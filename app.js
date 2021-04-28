@@ -35,7 +35,7 @@ app.use((req, res, next) => {
 app.use((err, req, res, next) => {
   // Delete the file if signup fails (req.file added by Multer)
   if (req.file) {
-    fs.unlink(req.file.path, (err) => {
+    fs.unlink(req.file.path, err => {
       console.log(err);
     });
   }
@@ -50,12 +50,12 @@ app.use((err, req, res, next) => {
 
 mongoose
   .connect(
-    'mongodb+srv://placesdbuser:fpbcn4bTW21LgIuv@cluster0.yz2ip.mongodb.net/mernPlaces?retryWrites=true&w=majority',
+    'mongodb+srv://placesdbuser:PASSWORD@cluster0.yz2ip.mongodb.net/mernPlaces?retryWrites=true&w=majority',
     { useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true }
   )
   .then(() => {
     app.listen(5000);
   })
-  .catch((err) => {
+  .catch(err => {
     console.log(err);
   });
